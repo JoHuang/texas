@@ -1,22 +1,27 @@
 {
-  "name": "texas",
+  "name": "@johuang/texas",
   "description": "Texas Hold'em hand evaluator for Node.js.",
   "homepage": "http://decs.github.io/texas/",
-  "version": "0.3.0",
+  "version": "0.4.1",
   "license": "MIT",
   "author": {
     "name": "André Costa",
     "email": "andrefonsecacosta@gmail.com"
   },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/decs/texas.git"
+  "repository": "https://github.com/johuang/texas.git",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   },
-  "type": "module",
-  "main": "texas.js",
+  "main": "dist/texas.js",
+  "types": "dist/texas.d.ts",
+  "files": [
+    "dist/*"
+  ],
   "scripts": {
-    "format": "prettier --write *.js",
-    "docs": "docco texas.js"
+    "format": "prettier --write src/*.ts",
+    "docs": "docco texas.js",
+    "build": "rm -rf dist/ && tsc && cp src/*.dat.gz dist/.",
+    "prepare": "yarn build"
   },
   "engines": {
     "node": ">=12.0.0"
@@ -25,7 +30,10 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.194",
+    "@types/node": "^20.1.3",
     "docco": "^0.9.1",
-    "prettier": "2.8.4"
+    "prettier": "2.8.4",
+    "typescript": "^5.0.4"
   }
 }

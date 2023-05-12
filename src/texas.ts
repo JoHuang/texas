@@ -8,6 +8,7 @@
 import _ from 'lodash';
 import {randomBytes} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
 import {unzipSync} from 'node:zlib';
 
 // ## Definitions
@@ -54,7 +55,7 @@ const HANDS = [
 ];
 
 // Loads the look-up table.
-const compressedBuffer = readFileSync('./HandRanks.dat.gz');
+const compressedBuffer = readFileSync(join(__dirname, './HandRanks.dat.gz'));
 const buffer = unzipSync(compressedBuffer);
 const evaluator = new Int32Array(
   buffer.buffer,
@@ -65,23 +66,28 @@ const evaluator = new Int32Array(
 // ## Internal Functions
 
 // Parses the formatted card to get its numeric code.
-const getCode = card => {
+const getCode = (card: number | string): number => {
   if (typeof card == 'number')
-    return card >= 1 && card <= DECK_SIZE ? card : undefined; // Already codified
+    if (!(card >= 1 && card <= DECK_SIZE))
+      throw new Error(`Invalid number ${card}`);
+    else return card; // Already codified
   if (typeof card != 'string' || card.length != 2) {
-    return undefined; // Invalid input
+    throw new Error(`Invalid input ${card}`);
   }
   const posRank = ABBR[card[0]];
   const posSuit = (ABBR[card[1]] - RANKS.length) >> 1;
   if (typeof posRank != 'number' || posRank >= RANKS.length || posSuit < 0)
-    return undefined; // Invalid characters
+    // return undefined; // Invalid characters
+    throw new Error(`Invalid characters ${card}`);
+
   return posRank * SUITS.length + posSuit + 1;
 };
 
+type FormatFn = (c: {rank: number; suit: number}) => string;
 // Helper function to create card formatters.
-const filter = format => {
-  return card => {
-    card = getCode(card);
+const filter = (format: FormatFn) => {
+  return (_card: number | string) => {
+    let card = getCode(_card);
     if (!card) {
       return undefined;
     }
@@ -92,7 +98,7 @@ const filter = format => {
 
 // ## Main Functions
 
-export function deck(format) {
+export function deck(format?: FormatFn) {
   const res = _.range(1, DECK_SIZE + 1);
   const buffer = randomBytes(DECK_SIZE << 2);
   for (let pos = res.length - 1; pos > 0; pos--) {
@@ -101,10 +107,10 @@ export function deck(format) {
     res[pos] = res[rand];
     res[rand] = temp;
   }
-  return format ? map(res, format) : res;
+  return format ? _.map(res, format) : res;
 }
 
-export function evaluate(cards) {
+export function evaluate(cards: (string | number)[]) {
   let res = DECK_SIZE + 1;
   for (let c = 0; c < cards.length; c++)
     res = evaluator[res + getCode(cards[c])];
@@ -114,15 +120,19 @@ export function evaluate(cards) {
   return {name: HANDS[res >> 12], value: res};
 }
 
-export function sort(cards) {
+export function sort(cards: (number | string)[]) {
   return _.sortBy(cards, getCode);
 }
 
-export function odds(hands, table, dead) {
+export function odds(
+  _hands: (number | string)[][],
+  _table: (number | string)[],
+  _dead: (number | string)[],
+) {
   // Preprocesses the input data.
-  table = table ? _.map(table, getCode) : [];
-  dead = dead ? _.map(dead, getCode) : [];
-  hands = _.map(hands, hand => {
+  const table = _table ? _.map(_table, getCode) : [];
+  const dead = _dead ? _.map(_dead, getCode) : [];
+  const hands = _.map(_hands, hand => {
     return _.map(hand, getCode);
   });
   let res = DECK_SIZE + 1;
@@ -137,7 +147,12 @@ export function odds(hands, table, dead) {
   const player = _.map(hands, hand => {
     return evaluator[evaluator[res + hand[0]] + hand[1]];
   });
-  const combinations = (n, k, res, callback) => {
+  const combinations = (
+    n: number,
+    k: number,
+    res: number,
+    callback: (res: number) => void,
+  ) => {
     if (k <= 0) {
       callback(res);
     } else {
