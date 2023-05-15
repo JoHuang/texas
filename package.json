@@ -9,9 +9,6 @@
     "email": "andrefonsecacosta@gmail.com"
   },
   "repository": "https://github.com/johuang/texas.git",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "main": "dist/texas.js",
   "types": "dist/texas.d.ts",
   "files": [
